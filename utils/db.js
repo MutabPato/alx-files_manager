@@ -1,6 +1,3 @@
-// Ce fichier contains the class 'DBClient' pour la manipulation de  MongoDB
-
-// Importation des modules dont on aura besoin
 import mongodb from 'mongodb';
 import Collection from 'mongodb/lib/collection';
 import envLoader from './env_loader';
@@ -23,6 +20,11 @@ class DBClient {
   // Hii function ita Checker connection ya client
   isAlive() {
     return this.client.isConnected();
+  }
+
+  // Return the 'users' collection
+  usersCollection() {
+    return this.client.db().collection('users');
   }
 
   // Cette function retourne les nombre de 'user' dans la base de données

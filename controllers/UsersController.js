@@ -5,7 +5,7 @@ import sha1 from 'sha1';
 import dbClient from '../utils/db';
 
 // Création de la class à exporter
-export default class UsersController {
+class UsersController {
   // Create a static method (belongs to the class and not instances)
   static async postNew(req, res) {
     // Ensure user infos are provided, otherwise set them to null
@@ -39,3 +39,5 @@ export default class UsersController {
     res.status(201).json({ email, id: userId });
   }
 }
+
+export default UsersController;
