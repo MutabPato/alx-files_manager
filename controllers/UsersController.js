@@ -1,42 +1,65 @@
-// Controller allowing la création de 'users'
-
-// Import des modules nécessaire
 import sha1 from 'sha1';
+import { ObjectId } from 'mongodb';
 import dbClient from '../utils/db';
+import userUtils from '../utils/user';
 
-// Création de la class à exporter
 class UsersController {
-  // Create a static method (belongs to the class and not instances)
+  // Create a new user
   static async postNew(req, res) {
-    // Ensure user infos are provided, otherwise set them to null
-    const email = req.body ? req.body.email : null;
-    const password = req.body ? req.body.password : null;
+    try {
+    // Get user information from the request body
+      const email = req.body ? req.body.email : null;
+      const password = req.body ? req.body.password : null;
 
-    // Tuma ma error messages kama ma info hazikukuwa
-    if (!email) {
-      res.status(400).json({ error: 'Missing email' });
-      return;
+      // Tuma ma error messages kama ma info hazikukuwa
+      if (!email) {
+        res.status(400).json({ error: 'Missing email' });
+        return;
+      }
+      if (!password) {
+        res.status(400).json({ error: 'Missing password' });
+        return;
+      }
+
+      // Check if the user already exists
+      const user = await (await dbClient.usersCollection()).findOne({ email });
+      if (user) {
+        res.status(400).json({ error: 'Already exist' });
+        return;
+      }
+
+      // Create and insert a new user into the database
+      const insertionInfo = await (await dbClient.usersCollection())
+        .insertOne({ email, password: sha1(password) });
+
+      // Extraction of the user ID
+      const userId = insertionInfo.insertedId.toString();
+
+      res.status(201).json({ email, id: userId });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
-    if (!password) {
-      res.status(400).json({ error: 'Missing password' });
-      return;
+  }
+
+  static async getMe(req, res) {
+    try {
+      const { userId } = await userUtils.getUserIdAndKey(req);
+
+      // Validate ObjectId format
+      if (!ObjectId.isValid(userId)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const user = await userUtils.getUser({ _id: ObjectId(userId) });
+
+      if (!user) return res.status(401).send({ error: 'Unauthorized' });
+
+      const processedUser = { id: user._id.toString(), email: user.email };
+      return res.status(200).send(processedUser);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
-
-    // Enchaîner 2 opérations async pour valider l'existence du 'user'
-    const user = await (await dbClient.usersCollection()).findOne({ email });
-    if (user) {
-      res.status(400).json({ error: 'Already exist' });
-      return;
-    }
-    
-    // Créer user wa mupya via 2 opérations async zingine
-    const insertionInfo = await (await dbClient.usersCollection())
-      .insertOne({ email, password: sha1(password) });
-
-    // Extraction du 'ID' de notre 'user'
-    const userId = insertionInfo.insertedId.toString();
-
-    res.status(201).json({ email, id: userId });
   }
 }
 
